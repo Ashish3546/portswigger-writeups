@@ -1,0 +1,195 @@
+# DOM XSS in jQuery Selector Sink Using a Hashchange Event
+
+## 📝 Lab Description
+
+This lab contains a DOM-based Cross-Site Scripting (XSS) vulnerability on the home page.
+
+The application uses jQuery's `$()` selector function to find and automatically scroll to a blog post based on data taken from `location.hash`.
+
+The goal is to deliver an exploit to the victim that executes:
+
+```javascript
+print()
+```
+
+---
+
+## 🔍 Vulnerable Code
+
+```javascript
+$(window).on('hashchange', function() {
+    var post = $('section.blog-list h2:contains(' +
+        decodeURIComponent(window.location.hash.slice(1)) +
+    ')');
+
+    if (post)
+        post.get(0).scrollIntoView();
+});
+```
+
+---
+
+## 🧠 Understanding the Vulnerability
+
+The application listens for changes to the URL fragment using the `hashchange` event.
+
+For example:
+
+```text
+https://example.com/#BlogPostTitle
+                     └──────┬──────┘
+                       URL fragment
+```
+
+The vulnerable flow is:
+
+```text
+URL fragment
+     ↓
+location.hash
+     ↓
+.slice(1)
+     ↓
+decodeURIComponent()
+     ↓
+jQuery $() selector sink
+     ↓
+JavaScript execution
+```
+
+The attacker-controlled URL fragment is passed into the jQuery `$()` selector without sufficient sanitisation.
+
+---
+
+## 🎯 Source and Sink
+
+**Source:**
+
+```javascript
+window.location.hash
+```
+
+**Sink:**
+
+```javascript
+$(...)
+```
+
+`location.hash` reads the part of the URL after `#`. This is different from `location.search`, which reads the query string after `?`.
+
+---
+
+## 💥 Exploit
+
+```html
+<iframe
+  src="https://VULNERABLE-LAB-URL/#"
+  onload="this.src+='<img src=x onerror=print()>'">
+</iframe>
+```
+
+---
+
+## ⚙️ How the Exploit Works
+
+1. The victim visits the attacker-controlled exploit page.
+2. The `<iframe>` loads the vulnerable website.
+3. When the iframe loads, its `onload` handler adds the payload to the URL fragment.
+4. The fragment changes, triggering the vulnerable page's `hashchange` event.
+5. The application reads the payload using `location.hash`.
+6. The payload reaches the vulnerable jQuery `$()` selector sink.
+7. The `<img>` element attempts to load the invalid source `x`.
+8. The load fails, triggering `onerror=print()`.
+
+```text
+Exploit Server
+      ↓
+Victim visits exploit
+      ↓
+iframe loads vulnerable site
+      ↓
+URL hash changes
+      ↓
+hashchange event fires
+      ↓
+location.hash
+      ↓
+jQuery $() sink
+      ↓
+<img src=x onerror=print()>
+      ↓
+print()
+```
+
+---
+
+## 🌐 Exploit Server and `<iframe>`
+
+The exploit server is a separate attacker-controlled website. Code stored in its **Body** becomes the `/exploit` webpage.
+
+When the exploit is delivered, PortSwigger's simulated victim visits this page.
+
+The `<iframe>` then loads the vulnerable website inside the exploit page. This allows the exploit to trigger the vulnerable website's client-side behaviour.
+
+Simply placing:
+
+```html
+<script>print()</script>
+```
+
+on the exploit server would only execute JavaScript on the attacker's own page and would not demonstrate XSS in the vulnerable application.
+
+---
+
+## 🧪 Issues Encountered
+
+### Infinite iframe loop
+
+An earlier attempt modified the iframe's `src` every time `onload` fired, causing repeated loading.
+
+```text
+iframe loads
+    ↓
+onload fires
+    ↓
+src changes
+    ↓
+iframe loads again
+    ↓
+Loop
+```
+
+This demonstrated that browser event timing is important when constructing client-side exploits.
+
+---
+
+## 🔑 Key Learnings
+
+- A URL hash is the fragment after `#` and is unrelated to a cryptographic hash.
+- `location.hash` reads the URL fragment.
+- `location.search` reads the URL query string.
+- `hashchange` fires when the URL fragment changes.
+- jQuery's `$()` can become a dangerous sink when processing attacker-controlled input.
+- An `<iframe>` can load another webpage inside the current page.
+- The exploit server represents an attacker-controlled website used to deliver the exploit.
+- Executing JavaScript on an attacker-controlled page is not the same as exploiting a vulnerable website.
+- DOM XSS depends on understanding the complete flow from source to sink.
+
+---
+
+## 🛡️ Mitigation
+
+- Avoid passing attacker-controlled input directly into jQuery selectors.
+- Treat URL fragments as untrusted input.
+- Validate and sanitise data before passing it to dangerous DOM sinks.
+- Prefer safer DOM APIs where possible.
+- Keep client-side libraries updated.
+
+---
+
+## 📌 References
+
+- PortSwigger Web Security Academy — DOM-based XSS
+- MDN Web Docs — `Location.hash`
+- MDN Web Docs — `hashchange`
+- jQuery API Documentation
