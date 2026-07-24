@@ -4,7 +4,7 @@ This section contains my detailed write-ups and solutions for client-side vulner
 
 ## 📂 Topics Covered
 
-- Cross-Site Scripting (XSS) — Coming Soon
+- Cross-Site Scripting (XSS) — Running
 - Cross-Site Request Forgery (CSRF) — Coming Soon
 - Clickjacking — Coming Soon
 - Cross-Origin Resource Sharing (CORS) — Coming Soon
