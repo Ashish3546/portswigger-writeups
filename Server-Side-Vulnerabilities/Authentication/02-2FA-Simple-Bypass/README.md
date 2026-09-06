@@ -1,7 +1,3 @@
-from pathlib import Path
-
-readme = r"""# Lab: 2FA Simple Bypass
-
 ## Lab Description
 
 This lab demonstrates a two-factor authentication bypass vulnerability caused by improper enforcement of the 2FA verification step.
