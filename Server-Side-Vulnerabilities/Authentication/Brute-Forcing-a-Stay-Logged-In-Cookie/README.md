@@ -1,4 +1,4 @@
-# Lab: Brute-Forcing a Stay-Logged-In Cookie
+# Lab: 09-brute-forcing-a-stay-logged-in-cookie/README.md
 
 ---
 
